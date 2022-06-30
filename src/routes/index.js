@@ -56,7 +56,8 @@ router.post('/policia', async (req, res) => {
             })
         )
         const browser = await puppeteer.launch({
-          headless: false
+          headless: false,
+          args: ['--use-gl=egl']
         })
       
         const page = await browser.newPage();
