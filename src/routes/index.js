@@ -124,10 +124,10 @@ router.post('/registraduria', async (req, res) => {
                 visualFeedback: true // colorize reCAPTCHAs (violet = detected, green = solved)
             })
         )
-        const browser = await puppeteer.launch();/**{
-            headless: false, 
-            devtools: false
-        } */
+        const browser = await puppeteer.launch({
+          headless: true,
+          args: ['--use-gl=egl']
+        });
         const page = await browser.newPage();
     
         const nombre = await consulta(page,'procuraduria',cedula);
