@@ -125,9 +125,7 @@ router.post('/registraduria', async (req, res) => {
             })
         )
         const browser = await puppeteer.launch({
-          headless: true,
-          args: ['--disable-setuid-sandbox', '--no-sandbox'],
-          executablePath: '/usr/bin/chromium-browser'
+          headless: true
         });
         const page = await browser.newPage();
     
