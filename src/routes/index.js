@@ -1,5 +1,5 @@
 import {Router} from 'express';
-//VERSION 1.0.0
+//VERSION 1.0.0 .1.0.0
 //SCRAPING
 import puppeteer from 'puppeteer-extra';
 import RecaptchaPlugin from 'puppeteer-extra-plugin-recaptcha';
