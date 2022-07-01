@@ -1,5 +1,5 @@
 import {Router} from 'express';
-
+//VERSION 1.0.0
 //SCRAPING
 import puppeteer from 'puppeteer-extra';
 import RecaptchaPlugin from 'puppeteer-extra-plugin-recaptcha';
@@ -136,15 +136,15 @@ router.post('/registraduria', async (req, res) => {
             name: nombre
         };
         await browser.close();
-        if(nombre !== 'error'){
+        if(nombre !== false){
             //return data;
             console.log(data);
             res.json(data);
         } else{
-            return 'error';
-            console.log('error');
-            res.json('error');
-            //consultar(cedula);
+           // return 'error';
+            console.log(data);
+            //res.json(data);
+            consultar(cedula);
         }
         //console.log('->',data);
     
