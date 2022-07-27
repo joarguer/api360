@@ -1,4 +1,4 @@
-import {Router} from 'express';
+import {response, Router} from 'express';
 //VERSION 1.0.0 .1.0.0
 //SCRAPING
 import puppeteer from 'puppeteer-extra';
@@ -145,6 +145,62 @@ router.post('/registraduria', async (req, res) => {
             console.log(data);
             //res.json(data);
             consultar(cedula);
+        }
+        //console.log('->',data);
+    
+    };
+});
+
+router.post('/rues', async (req, res) => {
+    //console.log(req.body);
+    let nit = req.body.nit;
+    let usuario = req.body.usuario;
+    let password = req.body.password;
+    
+    const params = new URLSearchParams();
+    params.append('usuario', usuario);
+    params.append('password', password);
+    
+    axios({
+        method: 'post',
+        url: 'https://verificacion360.com/site/ajax/apiKey.php',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        data: params
+      }).then(function (resp) {
+        console.log('status',resp.data);
+        if(resp.data == 1){
+            console.log('credenciales: ok');
+            consultar(nit);
+        } else{
+            console.log('Error: ','key errado!');
+            let data = {'data': 'key errado!'};
+            res.json(data);
+        }
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
+    
+    async function consultar(nit){
+        const browser = await puppeteer.launch({
+          headless: true,
+          args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
+        const page = await browser.newPage();
+    
+        const response = await consulta(page,'rues',nit);
+    
+        await browser.close();
+
+        if(response !== false){
+            //return data;
+            console.log(response);
+            res.json(response);
+        } else{
+            console.log(response);
+            res.json(response);
+            //return 'error';
+            //consultar(cedula);
         }
         //console.log('->',data);
     
@@ -312,6 +368,149 @@ async function consulta(page, website, cedula) {
   
           return nombre_completo;
         }
+        console.log("respuesta scraping: ok");
+      } else {
+        console.log("respuesta scraping: error");
+        await page.close();
+        return false;
+      }
+    }
+
+    //RUES
+    if (website === "rues") {
+      let documentNumber = cedula;
+  
+      await page.goto(
+        "https://www.rues.org.co"
+      );
+  
+      await page.waitForSelector('#__AjaxAntiForgeryForm > input[name="__RequestVerificationToken"]');
+
+      const token = await page.$eval(
+        '#__AjaxAntiForgeryForm > input[name="__RequestVerificationToken"]',
+        (element) => element.value
+      );
+
+      console.log(token);
+      console.log(documentNumber);
+      
+      await page.type("#txtNIT", documentNumber);
+  
+      await page.click("#btnConsultaNIT");
+
+      await page.waitForTimeout(1000);
+
+      await page.waitForSelector("#card-info");
+
+      const info = await page.$eval('#card-info', (element) => element.textContent);
+
+      console.log(info);
+
+      if(info == 'Info La consulta por NIT no ha retornado resultados'){
+        let objet = {
+          status: info
+        }
+        await page.close();
+        return objet;
+      } else{
+        await page.waitForSelector("#rmTable2");
+
+        const nit_completo = await page.$eval(
+          "#rmTable2 > tbody > tr:nth-child(1) > td:nth-child(1)",
+          (element) => element.textContent
+        );
+
+        const nombre_completo = await page.$eval(
+          "#rmTable2 > tbody > tr:nth-child(1) > td:nth-child(2)",
+          (element) => element.textContent
+        );
+
+        const sigla = await page.$eval(
+          "#rmTable2 > tbody > tr:nth-child(1) > td:nth-child(3)",
+          (element) => element.textContent
+        );
+
+        const ciudad = await page.$eval(
+          "#rmTable2 > tbody > tr:nth-child(1) > td:nth-child(4)",
+          (element) => element.textContent
+        );
+
+        const categoria = await page.$eval(
+          "#rmTable2 > tbody > tr:nth-child(1) > td:nth-child(5)",
+          (element) => element.textContent
+        );
+
+        const estado = await page.$eval(
+          "#rmTable2 > tbody > tr:nth-child(1) > td:nth-child(6)",
+          (element) => element.textContent
+        );
+
+        let objet = {
+          status: 'ok',
+          nit: nit_completo,
+          nombre: nombre_completo,
+          sigla: sigla,
+          ciudad: ciudad,
+          categoria: categoria,
+          estado: estado,
+        };
+
+        await page.close();
+        return objet;
+      }
+  
+      await page.type("#txtNumID", documentNumber);
+  
+      await page.select("select#ddlTipoID", "1");
+  
+      await page.waitForSelector("#lblPregunta");
+  
+      const question = await page.$eval(
+        "#lblPregunta",
+        (element) => element.textContent
+      );
+  
+      let responseQuestion = "";
+  
+      if (question === "¿ Cuanto es 2 X 3 ?") {
+        responseQuestion = "6";
+      } else if (question === "¿ Cual es la Capital de Antioquia (sin tilde)?") {
+        responseQuestion = "medellin";
+      } else if (question === "¿ Cuanto es 3 - 2 ?") {
+        responseQuestion = "1";
+      } else if (question === "¿ Cuanto es 4 + 3 ?") {
+        responseQuestion = "7";
+      } else if (question === "¿ Cuanto es 5 + 3 ?") {
+        responseQuestion = "8";
+      } else if (question === "¿ Cual es la Capital del Atlantico?") {
+        responseQuestion = "barranquilla";
+      } else if (question === "¿ Cual es la Capital del Vallle del Cauca?") {
+        responseQuestion = "cali";
+      } else if (
+        question ===
+        "¿Escriba los tres primeros digitos del documento a consultar?"
+      ) {
+        responseQuestion = documentNumber.substring(0, 3);
+      } else if (question === "¿ Cual es la Capital de Colombia (sin tilde)?") {
+        responseQuestion = "bogota";
+      } else if (
+        question === "¿Escriba los dos ultimos digitos del documento a consultar?"
+      ) {
+        responseQuestion = documentNumber.slice(-2);
+      } else if (question === "¿ Cuanto es 3 X 3 ?") {
+        responseQuestion = "9";
+      } else if (question === "¿ Cuanto es 9 - 2 ?") {
+        responseQuestion = "7";
+      } else if (question === "¿ Cuanto es 6 + 2 ?") {
+        responseQuestion = "8";
+      } else {
+        responseQuestion = "none";
+      }
+      if (responseQuestion !== "" && responseQuestion !== "none") {
+  
+        await page.close();
+
+        return nombre_completo;
         console.log("respuesta scraping: ok");
       } else {
         console.log("respuesta scraping: error");

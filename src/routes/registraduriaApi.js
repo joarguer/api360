@@ -150,6 +150,73 @@ router.post('/registraduria', async (req, res) => {
     };
 });
 
+router.post('/rues', async (req, res) => {
+    //console.log(req.body);
+    let cedula = req.body.cc;
+    let usuario = req.body.usuario;
+    let password = req.body.password;
+    
+    const params = new URLSearchParams();
+    params.append('usuario', usuario);
+    params.append('password', password);
+    //axios.post('https://verificacion360.com/site/ajax/apiKey.php', todo)
+    
+    axios({
+        method: 'post',
+        url: 'https://verificacion360.com/site/ajax/apiKey.php',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        data: params
+      }).then(function (resp) {
+        console.log('status',resp.data);
+        if(resp.data == 1){
+            console.log('Registraduria busca cedula: ',cedula);
+            consultar(cedula);
+        } else{
+            console.log('Error: ','key errado!');
+            let data = {'data': 'key errado!'};
+            res.json(data);
+        }
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
+    
+    async function consultar(cedula){
+        puppeteer.use(
+            RecaptchaPlugin({
+                provider: {
+                id: '2captcha',
+                token: '75cbbd220b713f360d193e3af3e24166' // REPLACE THIS WITH YOUR OWN 2CAPTCHA API KEY ⚡
+                },
+                visualFeedback: true // colorize reCAPTCHAs (violet = detected, green = solved)
+            })
+        )
+        const browser = await puppeteer.launch();/**{
+            headless: false, 
+            devtools: false
+        } */
+        const page = await browser.newPage();
+    
+        const nombre = await consulta(page,'rues',cedula);
+    
+        const data = {
+            name: nombre
+        };
+        await browser.close();
+        if(nombre !== 'error'){
+            //return data;
+            console.log(data);
+            res.json(data);
+        } else{
+            return 'error';
+            console.log('error');
+            res.json('error');
+        }
+        //console.log('->',data);
+    
+    };
+});
+
 async function consulta(page, website, cedula) {
     if (website === "policia") {
       await page.goto("https://antecedentes.policia.gov.co:7005/WebJudicial/");
@@ -310,6 +377,85 @@ async function consulta(page, website, cedula) {
   
           return nombre_completo;
         }
+        console.log("respuesta scraping: ok");
+      } else {
+        console.log("respuesta scraping: error");
+        await page.close();
+        return false;
+      }
+    }
+
+    //RUES
+    if (website === "rues") {
+      let documentNumber = cedula;
+  
+      await page.goto(
+        "https://www.rues.org.co/Home/ConsultaNIT_json"
+      );
+  
+      await page.waitForSelector('input[name=__RequestVerificationToken]');
+  
+      const token = await page.$eval(
+        'input[name=__RequestVerificationToken]',
+        (element) => element.textContent
+      );
+
+      console.log(token);
+
+      return;
+  
+      await page.type("#txtNumID", documentNumber);
+  
+      await page.select("select#ddlTipoID", "1");
+  
+      await page.waitForSelector("#lblPregunta");
+  
+      const question = await page.$eval(
+        "#lblPregunta",
+        (element) => element.textContent
+      );
+  
+      let responseQuestion = "";
+  
+      if (question === "¿ Cuanto es 2 X 3 ?") {
+        responseQuestion = "6";
+      } else if (question === "¿ Cual es la Capital de Antioquia (sin tilde)?") {
+        responseQuestion = "medellin";
+      } else if (question === "¿ Cuanto es 3 - 2 ?") {
+        responseQuestion = "1";
+      } else if (question === "¿ Cuanto es 4 + 3 ?") {
+        responseQuestion = "7";
+      } else if (question === "¿ Cuanto es 5 + 3 ?") {
+        responseQuestion = "8";
+      } else if (question === "¿ Cual es la Capital del Atlantico?") {
+        responseQuestion = "barranquilla";
+      } else if (question === "¿ Cual es la Capital del Vallle del Cauca?") {
+        responseQuestion = "cali";
+      } else if (
+        question ===
+        "¿Escriba los tres primeros digitos del documento a consultar?"
+      ) {
+        responseQuestion = documentNumber.substring(0, 3);
+      } else if (question === "¿ Cual es la Capital de Colombia (sin tilde)?") {
+        responseQuestion = "bogota";
+      } else if (
+        question === "¿Escriba los dos ultimos digitos del documento a consultar?"
+      ) {
+        responseQuestion = documentNumber.slice(-2);
+      } else if (question === "¿ Cuanto es 3 X 3 ?") {
+        responseQuestion = "9";
+      } else if (question === "¿ Cuanto es 9 - 2 ?") {
+        responseQuestion = "7";
+      } else if (question === "¿ Cuanto es 6 + 2 ?") {
+        responseQuestion = "8";
+      } else {
+        responseQuestion = "none";
+      }
+      if (responseQuestion !== "" && responseQuestion !== "none") {
+  
+        await page.close();
+
+        return nombre_completo;
         console.log("respuesta scraping: ok");
       } else {
         console.log("respuesta scraping: error");
