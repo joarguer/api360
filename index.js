@@ -1,8 +1,12 @@
 import express from 'express';
 
+import cors from 'cors';
+
 import registraduriApi from './src/routes/index.js';
 
 const app = express();
+
+app.use(cors());
 
 import morgan from 'morgan';
 
