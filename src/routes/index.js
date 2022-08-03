@@ -4,6 +4,11 @@ import {response, Router} from 'express';
 import puppeteer from 'puppeteer-extra';
 import RecaptchaPlugin from 'puppeteer-extra-plugin-recaptcha';
 
+//import ac from '@antiadmin/anticaptchaofficial';
+
+import bypass from '../bypass/captchaBypasser.js';
+
+
 const router = Router();
 
 import axios from 'axios';
@@ -13,10 +18,41 @@ router.get('/', async (req, res) => {
     res.send(data);
 });
 
+/**
+ * 
+ * 1006331500
+  1086048686
+  1098687775
+  1115574761
+  1144169601
+  1002777277
+  1002822009
+  1004596551
+  1059900299
+  1080043967
+  76046852
+  1003371987
+  1004623330
+  1007759005
+  1130668502
+  1059697092
+  1143842087
+  1144165086
+  1144180165
+  1151964604
+  13993829
+  48573807
+  1113627647
+  1144134762
+  1192781173
+  1007853795
+  1007853934 
+*/
+
 router.post('/policia', async (req, res) => {
-  let data = {'data': 'Sin servicio'};
-  res.json(data);
-  return false; 
+  //let data = {'data': 'Sin servicio'};
+  //res.json(data);
+  //return false; 
   let cedula = req.body.cc;
   let usuario = req.body.usuario;
   let password = req.body.password;
@@ -49,12 +85,14 @@ router.post('/policia', async (req, res) => {
         puppeteer.use(
             RecaptchaPlugin({
                 provider: {
-                  id: '2captcha',
-                  token: '75cbbd220b713f360d193e3af3e24166' // REPLACE THIS WITH YOUR OWN 2CAPTCHA API KEY ⚡
+                  fn: bypass
+                  //id: '2captcha',
+                  //token: '75cbbd220b713f360d193e3af3e24166' // REPLACE THIS WITH YOUR OWN 2CAPTCHA API KEY ⚡
                 },
-                visualFeedback: true // colorize reCAPTCHAs (violet = detected, green = solved)
+                //visualFeedback: true // colorize reCAPTCHAs (violet = detected, green = solved)
             })
         )
+
         const browser = await puppeteer.launch({
           headless: false,
           args: ['--use-gl=egl']
@@ -67,7 +105,6 @@ router.post('/policia', async (req, res) => {
         const data = {
             name: text
         };
-        //await browser.close();
         if(text !== 'error'){
             //return data;
             console.log(data);
@@ -78,13 +115,14 @@ router.post('/policia', async (req, res) => {
             return 'error';
             //consultar(cedula);
         }
+        //await browser.close();
         //console.log('->',data);
     
     };
 });
 
 router.post('/registraduria', async (req, res) => {
-    //console.log(req.body);
+  
     let cedula = req.body.cc;
     let usuario = req.body.usuario;
     let password = req.body.password;
@@ -92,7 +130,6 @@ router.post('/registraduria', async (req, res) => {
     const params = new URLSearchParams();
     params.append('usuario', usuario);
     params.append('password', password);
-    //axios.post('https://verificacion360.com/site/ajax/apiKey.php', todo)
     
     axios({
         method: 'post',
@@ -103,7 +140,7 @@ router.post('/registraduria', async (req, res) => {
         console.log('status',resp.data);
         if(resp.data == 1){
             console.log('Registraduria busca cedula: ',cedula);
-            consultar(cedula);
+            consultar_cedula(cedula);
         } else{
             console.log('Error: ','key errado!');
             let data = {'data': 'key errado!'};
@@ -114,7 +151,7 @@ router.post('/registraduria', async (req, res) => {
         console.log(error);
       });
     
-    async function consultar(cedula){
+    async function consultar_cedula(cedula){
         puppeteer.use(
             RecaptchaPlugin({
                 provider: {
@@ -129,25 +166,24 @@ router.post('/registraduria', async (req, res) => {
           args: ['--no-sandbox', '--disable-setuid-sandbox']
         });
         const page = await browser.newPage();
+
+        console.log('preparando consulta...');
     
         const nombre = await consulta(page,'procuraduria',cedula);
     
         const data = {
             name: nombre
         };
-        await browser.close();
+        //
         if(nombre !== false){
-            //return data;
             console.log(data);
             res.json(data);
         } else{
-           // return 'error';
+            //consultar_cedula(cedula);
             console.log(data);
-            //res.json(data);
-            consultar(cedula);
+            res.json(data);
         }
-        //console.log('->',data);
-    
+        await browser.close();
     };
 });
 
@@ -183,14 +219,14 @@ router.post('/rues', async (req, res) => {
     
     async function consultar(nit){
         const browser = await puppeteer.launch({
-          headless: true,
+          headless: false,
           args: ['--no-sandbox', '--disable-setuid-sandbox']
         });
         const page = await browser.newPage();
     
         const response = await consulta(page,'rues',nit);
     
-        await browser.close();
+        //
 
         if(response !== false){
             //return data;
@@ -199,9 +235,10 @@ router.post('/rues', async (req, res) => {
         } else{
             console.log(response);
             res.json(response);
-            //return 'error';
-            //consultar(cedula);
+            //return 'error'; Falla la validación del CAPTCHA.
+            consultar(nit);
         }
+        await browser.close();
         //console.log('->',data);
     
     };
@@ -210,8 +247,12 @@ router.post('/rues', async (req, res) => {
 async function consulta(page, website, cedula) {
     //POLICIA
     if (website === "policia") {
+
+      //ac.setAPIKey('22ca84a6b886fc68e9bf8cc529142a6a');
+
+      //ac.getBalance().then(console.log);
+
       await page.goto("https://antecedentes.policia.gov.co:7005/WebJudicial/");
-      //await page.goto('https://antecedentes.policia.gov.co:7005/WebJudicial/');
   
       await page.waitForSelector("#aceptaOption\\:0");
       await page.evaluate(() => {
@@ -227,16 +268,57 @@ async function consulta(page, website, cedula) {
       await page.waitForSelector("#cedulaInput");
       console.log('escribir cedula');
       await page.type("#cedulaInput", "18494458");
+
+      /*let token = await ac.solveRecaptchaV2Proxyless('https://antecedentes.policia.gov.co:7005/WebJudicial/antecedentes.xhtml', '6LcsIwQaAAAAAFCsaI\-dkR6hgKsZwwJRsmE0tIJH')
+      .then(gresponse => {
+          console.log('g-response: '+gresponse);
+          console.log('google cookies:');
+          console.log(ac.getCookies());
+      })
+      .catch(error => console.log('test received error '+error));
+        if (!token) {
+          //return false;
+      }*/
+
+      console.log('resolver chaptacha');
+
+      await page.waitForTimeout(2000);
+
+      await page.solveRecaptchas();
+
+      console.log('captcha resuelto');
+
+      await page.waitForSelector("#j_idt17");
+
+      await page.click("#j_idt17");
+
+      return false;
+
+      
+      await page.waitForSelector('#form\:j_idt8_content > table');   //#form\:mensajeCiudadano > b:nth-child(6)   #form\:j_idt8_content > table
+
+      const table = await page.$eval('#form\:j_idt8_content > table', (element) => element.textContent);
+
+      await page.waitForSelector('#form\:mensajeCiudadano');
+
+      const text = await page.$eval('#form\:mensajeCiudadano', (element) => element.textContent); //*[@id="form:mensajeCiudadano"]/b[3]
+      console.log("Text : ",text);
+      console.log("Table : ",table);
+      return text;
+
   
       //await page.waitForTimeout(1000);
       //await page.waitForSelector("#j_idt17");
       console.log('resolver captchat');
-      await page.solveRecaptchas();
-      console.log('captchat resuelto');
+      await page.$eval(selector, '#g-recaptcha-response', (Element, token) => {
+        console.log('token: ',token);
+        Element.value = token;
+      }, token);
+      console.log('captchat resuelto: '+token);
       //await page.waitForTimeout(1000);
-      console.log('click buscar');
+      //console.log('click buscar');
 
-      await page.click("#j_idt17");
+      //await page.click("#j_idt17");
 
       //await page.waitForSelector('#form\:j_idt8_content > table');   #form\:mensajeCiudadano > b:nth-child(6)   #form\:j_idt8_content > table
 
@@ -247,7 +329,7 @@ async function consulta(page, website, cedula) {
       //const text = await page.$eval('#form\:mensajeCiudadano', (element) => element.textContent); //*[@id="form:mensajeCiudadano"]/b[3]
       //console.log("Text : ",text);
       //console.log("Table : ",table);
-      return;
+      //return;
       //await page.close();
       //console.log("ok", value);
       //[@id="form:mensajeCiudadano"]/b[3]
@@ -257,6 +339,8 @@ async function consulta(page, website, cedula) {
     //REGISTRADURIA
     if (website === "procuraduria") {
       let documentNumber = cedula;
+
+      console.log('buscando en registraduria....');
   
       await page.goto(
         "https://apps.procuraduria.gov.co/webcert/inicio.aspx?tpo=1"
@@ -311,6 +395,9 @@ async function consulta(page, website, cedula) {
       } else {
         responseQuestion = "none";
       }
+      if(responseQuestion == 'none'){
+        consulta(page, website, cedula)
+      }
       //return question+'->'+responseQuestion;
       //return;
       //console.log('Question: ' + question + ' -> Response: ' + responseQuestion);
@@ -361,14 +448,14 @@ async function consulta(page, website, cedula) {
             (element) => element.textContent
           );
   
-          const nombre_completo =
-            nombre_1 + " " + nombre_2 + " " + nombre_3 + " " + nombre_4;
+          const nombre_completo = nombre_1 + " " + nombre_2 + " " + nombre_3 + " " + nombre_4;
   
           await page.close();
+
+          console.log("respuesta scraping: ok");
   
           return nombre_completo;
         }
-        console.log("respuesta scraping: ok");
       } else {
         console.log("respuesta scraping: error");
         await page.close();
@@ -410,7 +497,7 @@ async function consulta(page, website, cedula) {
         let objet = {
           status: info
         }
-        await page.close();
+        //await page.close();
         return objet;
       } else{
         await page.waitForSelector("#rmTable2");
