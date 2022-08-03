@@ -50,9 +50,9 @@ router.get('/', async (req, res) => {
 */
 
 router.post('/policia', async (req, res) => {
-  //let data = {'data': 'Sin servicio'};
-  //res.json(data);
-  //return false; 
+  let data = {'data': 'Sin servicio'};
+  res.json(data);
+  return; 
   let cedula = req.body.cc;
   let usuario = req.body.usuario;
   let password = req.body.password;
@@ -152,15 +152,6 @@ router.post('/registraduria', async (req, res) => {
       });
     
     async function consultar_cedula(cedula){
-        puppeteer.use(
-            RecaptchaPlugin({
-                provider: {
-                id: '2captcha',
-                token: '75cbbd220b713f360d193e3af3e24166' // REPLACE THIS WITH YOUR OWN 2CAPTCHA API KEY ⚡
-                },
-                visualFeedback: true // colorize reCAPTCHAs (violet = detected, green = solved)
-            })
-        )
         const browser = await puppeteer.launch({
           headless: true,
           args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -219,7 +210,7 @@ router.post('/rues', async (req, res) => {
     
     async function consultar(nit){
         const browser = await puppeteer.launch({
-          headless: false,
+          headless: true,
           args: ['--no-sandbox', '--disable-setuid-sandbox']
         });
         const page = await browser.newPage();
